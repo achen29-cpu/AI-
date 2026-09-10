@@ -22,4 +22,3 @@ student_data = {
 }
 st.table(student_data)
 #输入框
-#
