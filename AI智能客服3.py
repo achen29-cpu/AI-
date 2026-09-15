@@ -39,13 +39,13 @@ system_prompt ="""
 #不想每次刷新都保存的信息，均应该保存在st.session_state中
 if 'messages' not in st.session_state:  #保存聊天记录的地方
         st.session_state['messages'] = []
-#昵称
+    #昵称
 if 'nick_name' not in st.session_state: #保存伴侣的昵称
     st.session_state['nick_name'] = '小甜甜' #昵称默认值
-#性格
+    #性格
 if 'nature' not in st.session_state: #保存伴侣性格
     st.session_state['nature'] = '活泼开朗的东北姑娘'#性格默认值
-#展示聊天记录
+    #展示聊天记录
 for message in st.session_state.messages:  
     st.chat_message(message["role"]).write(message["content"])
 
