@@ -15,6 +15,10 @@ layout="wide",
 initial_sidebar_state="expanded",
 menu_items={}
 )
+#定义一个生成新建会话标识的函数
+def generate_session_name():
+    return datetime.datetime.now().strftime("%Y-%m-%d_%H-%m-%S") #格式化显示当前时间，生成唯一标识符
+
 #定义一个保存会话信息的函数
 def save_session():
     if st.session_state.current_session:
@@ -57,7 +61,7 @@ system_prompt ="""
         你必须严格遵守上述规则来回复用户
 """
 
-#不想每次刷新都保存的信息，均应该保存在st.session_state中
+#初始化聊天信息 不想每次刷新都保存的信息，均应该保存在st.session_state中
 if 'messages' not in st.session_state:  #保存聊天记录的地方
         st.session_state['messages'] = []
     #昵称
@@ -84,8 +88,10 @@ with st.sidebar:
         save_session()#调用保存会话信息的函数
 
         #2.创建一个新的会话
-        
-
+    st.session_state['messages'] = [] #清空聊天记录
+    st.session_state.current_session = generate_session_name() #生成新的会话标识
+   
+   #当前会话伴侣信息
     st.subheader("伴侣信息")
     nick_name = st.text_input("昵称",placeholder="请输入昵称",value = st.session_state.nick_name)#昵称输入框，placeholder为提示信息，value为默认值
     if nick_name: #如果用户输入了昵称
