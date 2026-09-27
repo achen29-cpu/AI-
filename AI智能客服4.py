@@ -3,6 +3,7 @@ from pathlib import Path
 import os
 from openai import OpenAI
 import datetime
+import json
 
 #设置页面配置项
 st.set_page_config(
@@ -14,6 +15,25 @@ layout="wide",
 initial_sidebar_state="expanded",
 menu_items={}
 )
+#定义一个保存会话信息的函数
+def save_session():
+    if st.session_state.current_session:
+        #构建新的会话对象
+        session_date = {
+                    "nick_name": st.session_state.nick_name,
+                    "nature": st.session_state.nature,
+                    "current_session": st.session_state.current_session,
+                    "messages": st.session_state.messages
+                }     
+     #如果 sessions 目录不存在，则创建
+        if not os.path.exists("sessions"):
+            os.makedirs("sessions")
+     #保存会话数据
+        with open(f"seesions/{st.session_state.current_session}.json", "w", encoding="utf-8") as f:
+            json.dump(session_date, f, ensure_ascii=False, indent=2) #将会话数据保存为json格式，确保中文不被转义，缩进2个空格
+
+
+
 #大标题
 st.title("AI智能客服")
 #logo
@@ -58,7 +78,14 @@ for message in st.session_state.messages:
 with st.sidebar:
     #侧边栏标题
     st.subheader('AI控制面板')
-    
+    #新建会话按钮
+    if st.button("新建会话",width="stretch",icon="🔄"):
+        #1.保存当前会话信息
+        save_session()#调用保存会话信息的函数
+
+        #2.创建一个新的会话
+        
+
     st.subheader("伴侣信息")
     nick_name = st.text_input("昵称",placeholder="请输入昵称",value = st.session_state.nick_name)#昵称输入框，placeholder为提示信息，value为默认值
     if nick_name: #如果用户输入了昵称
