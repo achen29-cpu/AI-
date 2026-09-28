@@ -33,9 +33,8 @@ def save_session():
         if not os.path.exists("sessions"):
             os.makedirs("sessions")
      #保存会话数据
-        with open(f"seesions/{st.session_state.current_session}.json", "w", encoding="utf-8") as f:
+        with open(f"sessions/{st.session_state.current_session}.json", "w", encoding="utf-8") as f:
             json.dump(session_date, f, ensure_ascii=False, indent=2) #将会话数据保存为json格式，确保中文不被转义，缩进2个空格
-
 
 
 #大标题
@@ -88,9 +87,9 @@ with st.sidebar:
         save_session()#调用保存会话信息的函数
 
         #2.创建一个新的会话
-    st.session_state['messages'] = [] #清空聊天记录
-    st.session_state.current_session = generate_session_name() #生成新的会话标识
-   
+        st.session_state['messages'] = [] #清空聊天记录
+        st.session_state.current_session = generate_session_name() #生成新的会话标识
+        save_session()#调用保存会话信息的函数，开启一个新文件保存新会话信息
    #当前会话伴侣信息
     st.subheader("伴侣信息")
     nick_name = st.text_input("昵称",placeholder="请输入昵称",value = st.session_state.nick_name)#昵称输入框，placeholder为提示信息，value为默认值
@@ -99,18 +98,6 @@ with st.sidebar:
     nature  = st.text_area("性格",placeholder="请输入性格",value = st.session_state.nature) #性格输入框
     if nature: #如果用户输入了性格
         st.session_state['nature'] = nature
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
