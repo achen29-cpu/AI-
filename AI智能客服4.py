@@ -36,6 +36,30 @@ def save_session():
         with open(f"sessions/{st.session_state.current_session}.json", "w", encoding="utf-8") as f:
             json.dump(session_date, f, ensure_ascii=False, indent=2) #将会话数据保存为json格式，确保中文不被转义，缩进2个空格
 
+#加载所有的会话列表信息函数
+def load_sessions():
+    session_list = []
+    #加载sessions目录下的所有json文件
+    if os.path.exists("sessions"):#健壮性判断
+        file_list = os.listdir("sessions") #获取sessions目录下的所有文件名
+        for filename in file_list:
+            if filename.endswith(".json"):#如果文件名以.json结尾
+                session_list.append(filename[0:-5]) #将文件名去掉后缀.json，作为文件名新增到要展示的会话信息列表里
+    return session_list #返回会话信息列表    
+
+#加载指定会话函数
+def load_session(session_name):
+    try:
+        if os.path.exists(f"sessions/{session_name}.json"):#健壮性判断,先判断存不存在
+            #读取会话数据
+            with open(f"sessions/{session_name}.json", "r", encoding="utf-8") as f:
+                session_date = json.load(f, ensure_ascii=False) #将json格式的数据加载为python字典
+                st.session_state.messages = session_date["messages"] #将加载的会话数据中的消息列表，赋值给st.session_state.messages
+                st.session_state.nick_name = session_date["nick_name"] #将加载的会话数据中的昵称，赋值给st.session_state.nick_name
+                st.session_state.nature = session_date["nature"] #将加载的会话数据中的性格，赋值给st.session_state.nature
+                st.session_state.current_session = session_name #将加载的会话数据中的会话标识，赋值给st.session_state.current_session
+    except Exception as e:
+        st.error(f"加载会话失败: {e}")
 
 #大标题
 st.title("AI智能客服")
@@ -46,16 +70,15 @@ st.logo(Path(__file__).parent / "resources" / "cat.jpg")
 client = OpenAI(api_key=os.environ.get('DEEPSEEK_API_KEY'),base_url="https://api.deepseek.com")
 #系统提示词，一会要传入请求体中
 system_prompt ="""
-    你叫%s，你是一个，现在是用户的真实伴侣，请完全代入伴侣角色。:
+    你叫%s，你是一个，现在是用户的真实客服，请完全代入客服角色。:
     规则
         1.每次只回1条消息
         2.禁止任何场景或状态描述性文字
         3.匹配用户的语言
         4.回复简短，像微信聊天一样
         5.有需要的话可以用等emoji表情
-        .用符合伴侣性格的方式对话
-        7.回复的内容，要充分体现伴侣的性格特征
-    伴侣性格:
+        .用符合客服性格的方式对话
+        7.回复的内容，要充分体现客服的性格特征
         -%s
         你必须严格遵守上述规则来回复用户
 """
@@ -65,10 +88,10 @@ if 'messages' not in st.session_state:  #保存聊天记录的地方
         st.session_state['messages'] = []
     #昵称
 if 'nick_name' not in st.session_state: #保存伴侣的昵称
-    st.session_state['nick_name'] = '小甜甜' #昵称默认值
+    st.session_state['nick_name'] = '图小辰' #昵称默认值
     #性格
 if 'nature' not in st.session_state: #保存伴侣性格
-    st.session_state['nature'] = '活泼开朗的东北姑娘'#性格默认值
+    st.session_state['nature'] = '专业严谨的客服'#性格默认值
     #会话标识
 if 'current_session' not in st.session_state: #保存唯一会话标识
     st.session_state['current_session'] = datetime.datetime.now().strftime("%Y-%m-%d_%H-%m-%S")#格式化显示
@@ -81,25 +104,40 @@ for message in st.session_state.messages:
 with st.sidebar:
     #侧边栏标题
     st.subheader('AI控制面板')
+
     #新建会话按钮
     if st.button("新建会话",width="stretch",icon="🔄"):
         #1.保存当前会话信息
         save_session()#调用保存会话信息的函数
 
         #2.创建一个新的会话
-        st.session_state['messages'] = [] #清空聊天记录
-        st.session_state.current_session = generate_session_name() #生成新的会话标识
-        save_session()#调用保存会话信息的函数，开启一个新文件保存新会话信息
+        if st.session_state.messages: #如果之前有会话记录,再清空之前的聊天记录生成新的会话标识，再保存会话信息，再刷新页面，不然反复点击“新建会话”按钮会一下子创建很多的保存文件
+            st.session_state['messages'] = [] #清空聊天记录
+            st.session_state.current_session = generate_session_name() #生成新的会话标识
+            save_session()#调用保存会话信息的函数，开启一个新文件保存新会话信息
+            st.rerun()#刷新页面
+
+    #会话历史
+    st.text("会话历史")
+    session_list = load_sessions() #加载所有的会话列表信息
+    for session in session_list:
+        col1,col2 = st.columns([4,1]) #通过columns函数，创建两个列，占比为4:1 (类似解包的动作)
+        with col1:
+            if st.button(session,width="stretch",icon="💌",key=f"load_{session}"):#点击按钮，加载会话信息
+                load_session(session)#调用加载会话信息的函数
+                st.rerun()#刷新页面
+        with col2:
+            if st.button("删除",icon="🗑️",key=f"delete_{session}"):#点击按钮，删除会话信息(传入key参数，是因为目前每个按钮传入的参数都是相同的，所以可以使用key参数来区分不同的会话)
+                pass    
+
    #当前会话伴侣信息
-    st.subheader("伴侣信息")
+    st.subheader("客服信息")
     nick_name = st.text_input("昵称",placeholder="请输入昵称",value = st.session_state.nick_name)#昵称输入框，placeholder为提示信息，value为默认值
     if nick_name: #如果用户输入了昵称
         st.session_state['nick_name'] = nick_name
     nature  = st.text_area("性格",placeholder="请输入性格",value = st.session_state.nature) #性格输入框
     if nature: #如果用户输入了性格
         st.session_state['nature'] = nature
-
-
 
 
 #聊天输入框
