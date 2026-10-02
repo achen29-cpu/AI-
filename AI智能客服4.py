@@ -53,7 +53,7 @@ def load_session(session_name):
         if os.path.exists(f"sessions/{session_name}.json"):#健壮性判断,先判断存不存在
             #读取会话数据
             with open(f"sessions/{session_name}.json", "r", encoding="utf-8") as f:
-                session_date = json.load(f, ensure_ascii=False) #将json格式的数据加载为python字典
+                session_date = json.load(f) #将json格式的数据加载为python字典
                 st.session_state.messages = session_date["messages"] #将加载的会话数据中的消息列表，赋值给st.session_state.messages
                 st.session_state.nick_name = session_date["nick_name"] #将加载的会话数据中的昵称，赋值给st.session_state.nick_name
                 st.session_state.nature = session_date["nature"] #将加载的会话数据中的性格，赋值给st.session_state.nature
@@ -61,11 +61,23 @@ def load_session(session_name):
     except Exception as e:
         st.error(f"加载会话失败: {e}")
 
+#删除会话信息的函数
+def delete_session(session_name):
+    try:
+        if os.path.exists(f"sessions/{session_name}.json"):#健壮性判断
+            os.remove(f"sessions/{session_name}.json")#删除指定的json文件
+            #如果删除的是当前会话，需要清空消息列表
+            if session_name == st.session_state.current_session:
+                st.session_state['messages'] = [] #清空聊天记录
+                st.session_state.current_session = generate_session_name() #生成新的会话标识
+            
+    except Exception as e:
+        st.error(f"删除会话失败: {e}")
+
 #大标题
 st.title("AI智能客服")
 #logo
 st.logo(Path(__file__).parent / "resources" / "cat.jpg")
-
 #创建与AI大模型交互的客户端对象（DEEPSEEK_API_KEY 环境变量的名字，值就是deepseek的apikey）
 client = OpenAI(api_key=os.environ.get('DEEPSEEK_API_KEY'),base_url="https://api.deepseek.com")
 #系统提示词，一会要传入请求体中
@@ -97,6 +109,7 @@ if 'current_session' not in st.session_state: #保存唯一会话标识
     st.session_state['current_session'] = datetime.datetime.now().strftime("%Y-%m-%d_%H-%m-%S")#格式化显示
   
     #展示聊天记录
+st.text(f"会话名称：{st.session_state.current_session}")
 for message in st.session_state.messages:  
     st.chat_message(message["role"]).write(message["content"])
 
@@ -123,14 +136,16 @@ with st.sidebar:
     for session in session_list:
         col1,col2 = st.columns([4,1]) #通过columns函数，创建两个列，占比为4:1 (类似解包的动作)
         with col1:
-            if st.button(session,width="stretch",icon="💌",key=f"load_{session}"):#点击按钮，加载会话信息
+            #三元运算符：如果条件表达式为真，则返回第一个表达式的值；否则，则返回第二个表达式的值 -->语法：表达式1 if 条件表达式 else 表达式2
+            if st.button(session,width="stretch",icon="💌",key=f"load_{session}",type="primary" if session == st.session_state.current_session else "secondary"):#点击按钮，加载会话信息,使用三元运算符区分当前会话
                 load_session(session)#调用加载会话信息的函数
                 st.rerun()#刷新页面
         with col2:
             if st.button("删除",icon="🗑️",key=f"delete_{session}"):#点击按钮，删除会话信息(传入key参数，是因为目前每个按钮传入的参数都是相同的，所以可以使用key参数来区分不同的会话)
-                pass    
-
-   #当前会话伴侣信息
+                delete_session(session)#调用删除会话信息的函数
+                st.rerun()#刷新页面
+   
+    #当前会话伴侣信息
     st.subheader("客服信息")
     nick_name = st.text_input("昵称",placeholder="请输入昵称",value = st.session_state.nick_name)#昵称输入框，placeholder为提示信息，value为默认值
     if nick_name: #如果用户输入了昵称
@@ -159,11 +174,6 @@ if prompt:#字符串会自动转化为布尔值，如果字符串非空，则为
         extra_body={"thinking": {"type": "enabled"}}
     )
    
-     #输出大模型返回的结果(非流式输出的解析方式)
-        #print("----------->大模型返回的结果",response.choices[0].message.content)#控制台保留一份
-        #st.chat_message("assistant").write(response.choices[0].message.content)#在网页中显示给用户
-
-
     #输出大模型返回的结果(流式输出的解析方式)
     response_message = st.empty()#创建一个空对象，用于展示AI的回复
     full_response = ""#用于接收拼接起来的完整回复
@@ -174,4 +184,6 @@ if prompt:#字符串会自动转化为布尔值，如果字符串非空，则为
     #存入AI大模型返回的结果
     print("----------->大模型返回的结果",full_response)#控制台保留一份
     st.session_state.messages.append({"role": "assistant", "content": full_response})#存入我们建立的缓存容器中
-    
+    #保存会话信息
+    save_session()#调用保存会话信息的函数,保存最新的会话信息(因为实时保存信息不能只靠“新建会话”按钮,而是大模型响应完之后就立即保存)
+
