@@ -45,7 +45,8 @@ def load_sessions():
         for filename in file_list:
             if filename.endswith(".json"):#如果文件名以.json结尾
                 session_list.append(filename[0:-5]) #将文件名去掉后缀.json，作为文件名新增到要展示的会话信息列表里
-    return session_list #返回会话信息列表    
+    session_list.sort(reverse=True) #返回会话信息列表 ,排序，降序排序 
+    return session_list#上一步返回值是none类型，故先排序，再返回
 
 #加载指定会话函数
 def load_session(session_name):
@@ -144,6 +145,9 @@ with st.sidebar:
             if st.button("删除",icon="🗑️",key=f"delete_{session}"):#点击按钮，删除会话信息(传入key参数，是因为目前每个按钮传入的参数都是相同的，所以可以使用key参数来区分不同的会话)
                 delete_session(session)#调用删除会话信息的函数
                 st.rerun()#刷新页面
+    #分隔线
+    st.divider()
+
    
     #当前会话伴侣信息
     st.subheader("客服信息")
@@ -187,3 +191,26 @@ if prompt:#字符串会自动转化为布尔值，如果字符串非空，则为
     #保存会话信息
     save_session()#调用保存会话信息的函数,保存最新的会话信息(因为实时保存信息不能只靠“新建会话”按钮,而是大模型响应完之后就立即保存)
 
+
+'''
+此次AI应用开发涉及到的主要功能点
+1.大模型对话交互功能
+2.大模型的会话记忆功能
+3.伴侣性格定制
+4.会话管理功能（比较多）--包括新建会话，加载会话，删除会话，保存会话，会话历史展示
+
+主要技术点：
+1.大模型部署方案：api调用，使用openai库
+2.http协议：GET/POST
+3.大模型交互方案
+4.大模型会话记忆方案：会话历史一直滚雪球
+5.streamlit框架构建页面
+6.文件基本操作：文件读写，文件夹创建，文件删除
+7.json操作
+8.os/datetime模块 os操作系统模块 datetime日期时间模块
+
+
+
+
+
+'''
